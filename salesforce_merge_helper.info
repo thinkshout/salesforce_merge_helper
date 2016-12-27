@@ -1,0 +1,6 @@
+name = Salesforce Merge Helper
+description = Helper functions that connect merged Salesforce objects to Drupal usermerges
+core = 7.x
+dependencies[] = usermerge
+dependencies[] = salesforce_mapping
+dependencies[] = salesforce_pull

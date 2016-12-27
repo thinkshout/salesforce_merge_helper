@@ -1,2 +1,2 @@
 # salesforce_merge_helper
-Helper functions that connect merged salesforce objects to Drupal usermerges
+Helper functions that connect merged Salesforce objects to Drupal usermerges
