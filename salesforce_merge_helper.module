@@ -8,50 +8,52 @@
  * Implements hook_salesforce_pull_entity_merge().
  */
 function salesforce_merge_helper_salesforce_pull_entity_merge($entity_mapping_to_delete, $merged_mapping_entity) {
+
+  // If we're not allowed to merge with this mapping, bail out.
+  if (!_salesforce_merge_helper_is_mapping_merge_allowed($merged_mapping_entity)) {
+    return;
+  }
+
   // We're assuming these two merged entities always have the same type.
   $entity_type = $entity_mapping_to_delete->entity_type;
   $entities = entity_load($entity_type, array($entity_mapping_to_delete->entity_id, $merged_mapping_entity->entity_id));
   $merged_entity = $entities[$merged_mapping_entity->entity_id];
   $entity_to_delete = $entities[$entity_mapping_to_delete->entity_id];
 
-  if (_salesforce_merge_helper_are_users_mergeable($entity_to_delete, $merged_entity)
-    && _salesforce_merge_helper_is_mapping_merge_allowed($merged_mapping_entity)) {
-    $user_to_delete = user_load($entity_to_delete->uid);
-    $user_to_keep = user_load($merged_entity->uid);
+  if ($entity_type == 'redhen_contact') {
+    // Attempt to get the user ids for the two contacts.
+    $userid1 = isset($merged_entity->uid) ? $merged_entity->uid : 0;
+    $userid2 = isset($entity_to_delete->uid) ? $entity_to_delete->uid : 0;
 
-    // Simulating submitting the form at /admin/people/merge with all default
-    // values checked.
-    $form_state = array();
-    $form_state['form_page'] = 'review_table';
-    $form_state['values']['user_to_delete'] = $user_to_delete;
-    $form_state['values']['user_to_keep'] = $user_to_keep;
-    $form_state['page_values']['merge_form']['usermerge_user_delete_action'] = 'delete';
+    // The deleted contact has a user but the remaining one does not:
+    // Move the user to the remaining contact.
+    if ($userid1 == 0 && $userid2 != 0) {
+      $merged_entity->uid = $userid2;
+      entity_save('redhen_contact', $merged_entity);
+    }
 
-    $form = drupal_build_form('usermerge_merge_form', $form_state);
+    // Both contacts have mergable users and the usermerge module is installed:
+    // Merge the users.
+    if ($userid1 && $userid2 && ($userid1 != $userid2) && module_exists('usermerge')) {
+      $user_to_delete = user_load($entity_to_delete->uid);
+      $user_to_keep = user_load($merged_entity->uid);
 
-    $form_state['page_values']['merge_form']['user_to_delete'] = $user_to_delete;
-    $form_state['page_values']['merge_form']['user_to_keep'] = $user_to_keep;
+      // Simulating submitting the form at /admin/people/merge with all default
+      // values checked.
+      $form_state = array();
+      $form_state['form_page'] = 'review_table';
+      $form_state['values']['user_to_delete'] = $user_to_delete;
+      $form_state['values']['user_to_keep'] = $user_to_keep;
+      $form_state['page_values']['merge_form']['usermerge_user_delete_action'] = 'delete';
 
-    usermerge_merge_form_submit($form, $form_state);
+      $form = drupal_build_form('usermerge_merge_form', $form_state);
+
+      $form_state['page_values']['merge_form']['user_to_delete'] = $user_to_delete;
+      $form_state['page_values']['merge_form']['user_to_keep'] = $user_to_keep;
+
+      usermerge_merge_form_submit($form, $form_state);
+    }
   }
-}
-
-/**
- * Helper function to determine if we should try to merge users.
- *
- * @param object $user1
- *   The first user.
- * @param object $user2
- *   The second user.
- *
- * @return bool
- *   If the two users are mergeable, TRUE.
- */
-function _salesforce_merge_helper_are_users_mergeable($user1, $user2) {
-  $userid1 = isset($user1->uid) ? $user1->uid : 0;
-  $userid2 = isset($user2->uid) ? $user2->uid : 0;
-
-  return ($userid1 && $userid2 && ($userid1 != $userid2) && module_exists('usermerge'));
 }
 
 /**
