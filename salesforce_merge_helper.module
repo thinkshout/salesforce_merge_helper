@@ -32,7 +32,7 @@ function salesforce_merge_helper_salesforce_pull_entity_merge($entity_mapping_to
       $entity_to_delete->deleteUser(TRUE);
       // Assign user to the remaining contact.
       $merged_entity->uid = $userid2;
-      entity_save('redhen_contact', $merged_entity);
+      $merged_entity->setUser();
     }
 
     // Both contacts have mergable users and the usermerge module is installed:
