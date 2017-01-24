@@ -28,6 +28,9 @@ function salesforce_merge_helper_salesforce_pull_entity_merge($entity_mapping_to
     // The deleted contact has a user but the remaining one does not:
     // Move the user to the remaining contact.
     if ($userid1 == 0 && $userid2 != 0) {
+      // Remove the user linkage with the old contact.
+      $entity_to_delete->deleteUser(TRUE);
+      // Assign user to the remaining contact.
       $merged_entity->uid = $userid2;
       entity_save('redhen_contact', $merged_entity);
     }
